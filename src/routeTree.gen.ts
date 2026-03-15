@@ -9,38 +9,148 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProfileIndexRouteImport } from './routes/profile/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as TeamsCreateRouteImport } from './routes/teams/create'
+import { Route as ProfileRequestsRouteImport } from './routes/profile/requests'
+import { Route as AdminTeamsRouteImport } from './routes/admin/teams'
+import { Route as AdminRequestsRouteImport } from './routes/admin/requests'
+import { Route as TeamsRequestsRequestIdRouteImport } from './routes/teams/requests.$requestId'
 
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProfileIndexRoute = ProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const TeamsCreateRoute = TeamsCreateRouteImport.update({
+  id: '/teams/create',
+  path: '/teams/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRequestsRoute = ProfileRequestsRouteImport.update({
+  id: '/profile/requests',
+  path: '/profile/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTeamsRoute = AdminTeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRequestsRoute = AdminRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AdminRoute,
+} as any)
+const TeamsRequestsRequestIdRoute = TeamsRequestsRequestIdRouteImport.update({
+  id: '/teams/requests/$requestId',
+  path: '/teams/requests/$requestId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/admin/requests': typeof AdminRequestsRoute
+  '/admin/teams': typeof AdminTeamsRoute
+  '/profile/requests': typeof ProfileRequestsRoute
+  '/teams/create': typeof TeamsCreateRoute
+  '/admin/': typeof AdminIndexRoute
+  '/profile/': typeof ProfileIndexRoute
+  '/teams/requests/$requestId': typeof TeamsRequestsRequestIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/requests': typeof AdminRequestsRoute
+  '/admin/teams': typeof AdminTeamsRoute
+  '/profile/requests': typeof ProfileRequestsRoute
+  '/teams/create': typeof TeamsCreateRoute
+  '/admin': typeof AdminIndexRoute
+  '/profile': typeof ProfileIndexRoute
+  '/teams/requests/$requestId': typeof TeamsRequestsRequestIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/admin/requests': typeof AdminRequestsRoute
+  '/admin/teams': typeof AdminTeamsRoute
+  '/profile/requests': typeof ProfileRequestsRoute
+  '/teams/create': typeof TeamsCreateRoute
+  '/admin/': typeof AdminIndexRoute
+  '/profile/': typeof ProfileIndexRoute
+  '/teams/requests/$requestId': typeof TeamsRequestsRequestIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/admin/requests'
+    | '/admin/teams'
+    | '/profile/requests'
+    | '/teams/create'
+    | '/admin/'
+    | '/profile/'
+    | '/teams/requests/$requestId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin/requests'
+    | '/admin/teams'
+    | '/profile/requests'
+    | '/teams/create'
+    | '/admin'
+    | '/profile'
+    | '/teams/requests/$requestId'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/admin/requests'
+    | '/admin/teams'
+    | '/profile/requests'
+    | '/teams/create'
+    | '/admin/'
+    | '/profile/'
+    | '/teams/requests/$requestId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  ProfileRequestsRoute: typeof ProfileRequestsRoute
+  TeamsCreateRoute: typeof TeamsCreateRoute
+  ProfileIndexRoute: typeof ProfileIndexRoute
+  TeamsRequestsRequestIdRoute: typeof TeamsRequestsRequestIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +158,79 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/profile/': {
+      id: '/profile/'
+      path: '/profile'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof ProfileIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/teams/create': {
+      id: '/teams/create'
+      path: '/teams/create'
+      fullPath: '/teams/create'
+      preLoaderRoute: typeof TeamsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/requests': {
+      id: '/profile/requests'
+      path: '/profile/requests'
+      fullPath: '/profile/requests'
+      preLoaderRoute: typeof ProfileRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/teams': {
+      id: '/admin/teams'
+      path: '/teams'
+      fullPath: '/admin/teams'
+      preLoaderRoute: typeof AdminTeamsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/requests': {
+      id: '/admin/requests'
+      path: '/requests'
+      fullPath: '/admin/requests'
+      preLoaderRoute: typeof AdminRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/teams/requests/$requestId': {
+      id: '/teams/requests/$requestId'
+      path: '/teams/requests/$requestId'
+      fullPath: '/teams/requests/$requestId'
+      preLoaderRoute: typeof TeamsRequestsRequestIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminRequestsRoute: typeof AdminRequestsRoute
+  AdminTeamsRoute: typeof AdminTeamsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminRequestsRoute: AdminRequestsRoute,
+  AdminTeamsRoute: AdminTeamsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  ProfileRequestsRoute: ProfileRequestsRoute,
+  TeamsCreateRoute: TeamsCreateRoute,
+  ProfileIndexRoute: ProfileIndexRoute,
+  TeamsRequestsRequestIdRoute: TeamsRequestsRequestIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

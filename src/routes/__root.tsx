@@ -7,16 +7,26 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { ThemeProvider } from "next-themes";
-import { Header } from "../components/header";
+import { getSessionFn } from "#/actions/auth.fn";
+import { AuthGuard } from "#/components/auth-guard";
+import Header from "#/components/header";
+import { NotFound } from "#/components/not-found";
+import type { SessionUser } from "#/lib/zod/auth.schema";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
 import appCss from "../styles.css?url";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
+	session: SessionUser | null;
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+	beforeLoad: async () => {
+		const session = await getSessionFn();
+		return { session };
+	},
+	notFoundComponent: NotFound,
 	head: () => ({
 		meta: [
 			{
@@ -50,7 +60,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
 					<TanStackQueryProvider>
 						<Header />
-						{children}
+						<AuthGuard>{children}</AuthGuard>
 						<TanStackDevtools
 							config={{
 								position: "bottom-right",

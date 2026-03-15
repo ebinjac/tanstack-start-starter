@@ -1,8 +1,10 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
-export function ThemeToggle() {
+
+export function ThemeToggle({ className }: { className?: string }) {
 	const { theme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 
@@ -14,7 +16,8 @@ export function ThemeToggle() {
 	}
 
 	return (
-		<div className="flex items-center gap-1 p-1 bg-default-100 rounded-full border border-divider">
+		<div className={cn("flex items-center gap-1 p-1 bg-default-100 rounded-full border border-divider", className)}>
+
 			<button
 				type="button"
 				onClick={() => setTheme("light")}
