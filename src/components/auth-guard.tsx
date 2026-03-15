@@ -1,7 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { createSessionFn, getSessionFn } from "@/actions/auth.fn";
-import { useAuthBlueSSO } from "@/components/use-authblue-sso";
+import { useAuthBlueSSO } from "@/hooks";
 import type { SessionUser } from "@/lib/zod/auth.schema";
 
 /**
