@@ -5,6 +5,9 @@ export * from "./teams";
 export * from "./turnover";
 export * from "./turnover-settings";
 
+/** Re-export Drizzle operators so callers use the same drizzle-orm instance as schema (avoids duplicate-package type errors). */
+export { eq, inArray, gte } from "drizzle-orm";
+
 import {
   applicationGroupMemberships,
   applicationGroupMembershipsRelations,

@@ -95,7 +95,7 @@ function RouteComponent() {
 				},
 			});
 			// Success redirect to request status page
-			navigate({ to: "/teams/requests/$requestId", params: { requestId: res.requestId as any } });
+			navigate({ to: "/teams/requests/$requestId", params: { requestId: res.requestId } });
 		} catch (err) {
 			const errorMessage =
 				err instanceof Error ? err.message : "Failed to submit request.";

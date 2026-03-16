@@ -6,13 +6,12 @@ import {
 } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import type { TeamRegistrationRequest } from "@/db/schema";
 import { approveTeamRequestFn, rejectTeamRequestFn } from "@/actions/teams.fn";
+import { queryKeys } from "@/lib/query-keys";
 import { pendingRequestsQueryOptions } from "../admin";
 
 export const Route = createFileRoute("/admin/requests")({
-	loader: ({ context }) => {
-		context.queryClient.prefetchQuery(pendingRequestsQueryOptions());
-	},
 	component: RequestsView,
 });
 
@@ -25,7 +24,7 @@ function RequestsView() {
 	const [actionState, setActionState] = useState<{
 		isOpen: boolean;
 		type: "approve" | "reject" | null;
-		request: any | null;
+		request: TeamRegistrationRequest | null;
 	}>({ isOpen: false, type: null, request: null });
 
 	const [comment, setComment] = useState("");
@@ -37,7 +36,7 @@ function RequestsView() {
 	>({
 		mutationFn: approveTeamRequestFn,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["admin", "pendingRequests"] });
+			queryClient.invalidateQueries({ queryKey: queryKeys.admin.all });
 			setActionState({ isOpen: false, type: null, request: null });
 		},
 	});
@@ -49,12 +48,12 @@ function RequestsView() {
 	>({
 		mutationFn: rejectTeamRequestFn,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["admin", "pendingRequests"] });
+			queryClient.invalidateQueries({ queryKey: queryKeys.admin.all });
 			setActionState({ isOpen: false, type: null, request: null });
 		},
 	});
 
-	const openDialog = (type: "approve" | "reject", request: any) => {
+	const openDialog = (type: "approve" | "reject", request: TeamRegistrationRequest) => {
 		setActionState({ isOpen: true, type, request });
 		setComment("");
 	};
@@ -107,7 +106,7 @@ function RequestsView() {
 									</div>
 								)}
 							>
-								{pendingRequests.map((req: any) => (
+								{pendingRequests.map((req: TeamRegistrationRequest) => (
 									<Table.Row key={req.id}>
 										<Table.Cell className="font-semibold">
 											{req.teamName}
@@ -189,7 +188,9 @@ function RequestsView() {
 												: "Optional notes..."
 										}
 										value={comment}
-										onChange={(e: any) => setComment(e.target.value)}
+										onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+											setComment(e.target.value)
+										}
 										className="w-full"
 									/>
 								</Surface>

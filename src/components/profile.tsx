@@ -1,3 +1,4 @@
+import type { Key } from "@heroui/react";
 import { Avatar, Dropdown, Label, Separator } from "@heroui/react";
 import { ArrowUpRightFromSquare, Clock, Settings, Users } from "lucide-react";
 import { useRouteContext, useRouter } from "@tanstack/react-router";
@@ -14,7 +15,7 @@ export function Profile() {
 		.toUpperCase()
 		.slice(0, 2);
 
-	const handleAction = (key: any) => {
+	const handleAction = (key: Key) => {
 		switch (key) {
 			case "admin-dash":
 				router.navigate({ to: "/admin" });

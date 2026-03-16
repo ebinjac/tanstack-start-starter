@@ -9,6 +9,7 @@ export const queryKeys = {
     all: ["admin"] as const,
     pendingRequests: () => [...queryKeys.admin.all, "pendingRequests"] as const,
     allTeams: () => [...queryKeys.admin.all, "allTeams"] as const,
+    requestStats: () => [...queryKeys.admin.all, "requestStats"] as const,
   },
   teams: {
     all: ["teams"] as const,

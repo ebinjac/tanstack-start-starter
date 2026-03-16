@@ -11,6 +11,7 @@ import { getSessionFn } from "#/actions/auth.fn";
 import { AuthGuard } from "#/components/auth-guard";
 import Header from "#/components/header";
 import { NotFound } from "#/components/not-found";
+import { ErrorBoundary } from "#/components/ui/error-boundary";
 import type { SessionUser } from "#/lib/zod/auth.schema";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
@@ -60,7 +61,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
 					<TanStackQueryProvider>
 						<Header />
-						<AuthGuard>{children}</AuthGuard>
+						<AuthGuard>
+							<ErrorBoundary>{children}</ErrorBoundary>
+						</AuthGuard>
 						<TanStackDevtools
 							config={{
 								position: "bottom-right",

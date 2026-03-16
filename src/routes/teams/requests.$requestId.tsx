@@ -1,11 +1,18 @@
+import type { TeamRegistrationRequest } from "@/db/schema";
 import { Button, Label, Surface } from "@heroui/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getTeamRequestByIdFn } from "@/actions/teams.fn";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { queryKeys } from "@/lib/query-keys";
 
 export const Route = createFileRoute("/teams/requests/$requestId")({
-	loader: async ({ params }) => {
+	loader: async ({ context, params }) => {
+		context.queryClient.prefetchQuery({
+			queryKey: queryKeys.teams.requestById(params.requestId),
+			queryFn: () => getTeamRequestByIdFn({ data: params.requestId }),
+		});
 		return { requestId: params.requestId };
 	},
 	component: RouteComponent,
@@ -15,7 +22,7 @@ function RouteComponent() {
 	const { requestId } = Route.useLoaderData();
 
 	const { data: request, isLoading } = useQuery({
-		queryKey: ["team-request", requestId],
+		queryKey: queryKeys.teams.requestById(requestId),
 		queryFn: () => getTeamRequestByIdFn({ data: requestId }),
 	});
 
@@ -35,17 +42,7 @@ function RouteComponent() {
 		);
 	}
 
-	const statusColors = {
-		pending: "bg-warning/10 text-warning border-warning/20",
-		approved: "bg-success/10 text-success border-success/20",
-		rejected: "bg-danger/10 text-danger border-danger/20",
-	};
-
-	const statusIcons = {
-		pending: <Clock className="size-4 text-warning" />,
-		approved: <CheckCircle2 className="size-4 text-success" />,
-		rejected: <XCircle className="size-4 text-danger" />,
-	};
+	const req = request as TeamRegistrationRequest;
 
 	return (
 		<div className="max-w-xl mx-auto px-4 py-12 flex flex-col gap-6">
@@ -67,56 +64,53 @@ function RouteComponent() {
 							Team Creation Request
 						</span>
 						<h1 className="text-2xl font-black tracking-tight">
-							{request.teamName}
+							{req.teamName}
 						</h1>
 					</div>
-					<div
-						className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${statusColors[request.status as keyof typeof statusColors]}`}
-					>
-						{statusIcons[request.status as keyof typeof statusIcons]}
-						<span className="capitalize">{request.status}</span>
-					</div>
+					<StatusBadge
+						status={req.status === "processed" ? "approved" : req.status}
+					/>
 				</div>
 
 				<div className="grid grid-cols-2 gap-y-5 gap-x-4 text-sm mt-1">
 					<div className="flex flex-col gap-1">
 						<Label className="text-xs text-muted">User Group</Label>
 						<span className="font-semibold text-foreground/90">
-							{request.userGroup}
+							{req.userGroup}
 						</span>
 					</div>
 					<div className="flex flex-col gap-1">
 						<Label className="text-xs text-muted">Admin Group</Label>
 						<span className="font-semibold text-foreground/90">
-							{request.adminGroup}
+							{req.adminGroup}
 						</span>
 					</div>
 					<div className="flex flex-col gap-1">
 						<Label className="text-xs text-muted">Contact Person</Label>
 						<span className="font-semibold text-foreground/90">
-							{request.contactName}
+							{req.contactName}
 						</span>
 					</div>
 					<div className="flex flex-col gap-1">
 						<Label className="text-xs text-muted">Contact Email</Label>
 						<span className="font-semibold text-foreground/90">
-							{request.contactEmail}
+							{req.contactEmail}
 						</span>
 					</div>
 				</div>
 
-				{request.comments && (
+				{req.comments && (
 					<div className="p-4 rounded-xl bg-muted/10 border border-border/10 mt-2">
 						<Label className="text-xs text-muted block mb-1">
 							Comment / Feedback
 						</Label>
 						<p className="text-sm text-foreground/80 leading-relaxed">
-							{request.comments}
+							{req.comments}
 						</p>
 					</div>
 				)}
 
-				{request.status === "approved" && (
+				{(req.status === "approved" || req.status === "processed") && (
 					<div className="mt-2 p-4 rounded-xl bg-success/5 border border-success/10 flex flex-col gap-2">
 						<p className="text-sm text-success flex items-center gap-1.5 font-bold">
 							🎉 Your team workspace is ready!
@@ -129,7 +123,7 @@ function RouteComponent() {
 					</div>
 				)}
 
-				{request.status === "pending" && (
+				{req.status === "pending" && (
 					<div className="mt-2 p-4 rounded-xl bg-muted/10 border border-border/10 flex flex-col gap-1">
 						<p className="text-xs text-muted">
 							You will be notified once the admin approves your request.

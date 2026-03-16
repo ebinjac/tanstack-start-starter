@@ -1,4 +1,3 @@
-import type { Key } from "@heroui/react";
 import {
 	Avatar,
 	Button,
@@ -7,49 +6,21 @@ import {
 	ListBox,
 	Select,
 } from "@heroui/react";
-import { useQuery } from "@tanstack/react-query";
-import { useRouteContext, useRouter } from "@tanstack/react-router";
 import { Plus, Settings } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getTeamsByIdsFn } from "@/actions/teams.fn";
+import { useTeamSwitcher } from "@/hooks";
 
 export function TeamSwitcher() {
-	const { session } = useRouteContext({ from: "__root__" });
-	const router = useRouter();
+	const {
+		teams,
+		teamsLoading,
+		selectedTeamId,
+		activeTeam,
+		hasNoTeams,
+		handleTeamChange,
+		router,
+	} = useTeamSwitcher();
 
-	const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
-
-	const accessibleTeamIds = session?.accessibleTeamIds || [];
-
-	// Fetch teams list using server function
-	const { data: teams = [] } = useQuery({
-		queryKey: ["my-teams", accessibleTeamIds],
-		queryFn: () => getTeamsByIdsFn({ data: accessibleTeamIds }),
-		enabled: accessibleTeamIds.length > 0,
-	});
-
-	useEffect(() => {
-		if (accessibleTeamIds.length === 0) return;
-
-		const stored = localStorage.getItem("selectedTeamId");
-		if (stored && accessibleTeamIds.includes(stored)) {
-			setSelectedTeamId(stored);
-		} else {
-			const fallback = accessibleTeamIds[0];
-			setSelectedTeamId(fallback);
-			localStorage.setItem("selectedTeamId", fallback);
-		}
-	}, [accessibleTeamIds]);
-
-	const handleTeamChange = (value: any) => {
-		if (!value) return;
-		const keyStr = String(value);
-		localStorage.setItem("selectedTeamId", keyStr);
-		setSelectedTeamId(keyStr);
-		router.invalidate();
-	};
-
-	if (accessibleTeamIds.length === 0) {
+	if (hasNoTeams) {
 		return (
 			<Button
 				size="sm"
@@ -61,24 +32,25 @@ export function TeamSwitcher() {
 		);
 	}
 
-	const activeTeam = teams.find((t: any) => t.id === selectedTeamId);
-
 	return (
 		<Select
 			value={selectedTeamId}
 			onChange={handleTeamChange}
 			aria-label="Select Team"
 			className="w-60"
+			isDisabled={teamsLoading}
 		>
 			<Select.Trigger className="group rounded-xl border border-border/30 bg-surface/40 h-10 flex items-center pr-2 pl-3 hover:border-border/60 hover:bg-surface/60 transition-colors focus:ring-2 focus:ring-accent/40 focus:border-accent cursor-pointer w-full">
 				<Select.Value className="text-sm font-semibold flex-1 text-left">
-					{activeTeam?.teamName || "Select Team"}
+					{teamsLoading
+						? "Loading teams..."
+						: activeTeam?.teamName || "Select Team"}
 				</Select.Value>
 				<Select.Indicator className="text-muted/40 group-hover:text-muted size-4 ml-auto" />
 			</Select.Trigger>
 			<Select.Popover className="w-64 mt-2">
 				<ListBox className="p-1">
-					{teams.map((team: any) => {
+					{teams.map((team) => {
 						const isSelected = team.id === selectedTeamId;
 						const initials = team.teamName[0].toUpperCase();
 						return (

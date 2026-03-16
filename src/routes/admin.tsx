@@ -3,7 +3,11 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Outlet, createFileRoute, redirect, useLocation, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Clock, ShieldCheck, Users } from "lucide-react";
 import { Suspense } from "react";
-import { getAllTeamsAdminFn, getPendingTeamRequestsFn } from "@/actions/teams.fn";
+import {
+	getAllTeamsAdminFn,
+	getPendingTeamRequestsFn,
+	getRequestStatsForDashboardFn,
+} from "@/actions/teams.fn";
 import { Profile } from "@/components/profile";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -21,18 +25,25 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { queryKeys } from "@/lib/query-keys";
 import { cn } from "@/lib/utils";
 
 export const pendingRequestsQueryOptions = () =>
 	queryOptions({
-		queryKey: ["admin", "pendingRequests"],
+		queryKey: queryKeys.admin.pendingRequests(),
 		queryFn: () => getPendingTeamRequestsFn(),
 	});
 
 export const allTeamsQueryOptions = () =>
 	queryOptions({
-		queryKey: ["admin", "allTeams"],
+		queryKey: queryKeys.admin.allTeams(),
 		queryFn: () => getAllTeamsAdminFn(),
+	});
+
+export const requestStatsQueryOptions = () =>
+	queryOptions({
+		queryKey: queryKeys.admin.requestStats(),
+		queryFn: () => getRequestStatsForDashboardFn(),
 	});
 
 
@@ -43,8 +54,9 @@ export const Route = createFileRoute("/admin")({
 		}
 	},
 	loader: ({ context }) => {
-		// Non-blocking prefetch triggered immediately at the layout level
 		context.queryClient.prefetchQuery(pendingRequestsQueryOptions());
+		context.queryClient.prefetchQuery(allTeamsQueryOptions());
+		context.queryClient.prefetchQuery(requestStatsQueryOptions());
 	},
 	component: AdminComponent,
 });

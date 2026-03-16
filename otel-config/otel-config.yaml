@@ -1,0 +1,43 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+    send_batch_max_size: 8192
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1000
+
+exporters:
+  # Terminal Output (for local debugging)
+  debug:
+    verbosity: detailed
+
+  # Axiom Output
+  otlphttp/axiom:
+    compression: zstd
+    endpoint: https://us-east-1.aws.edge.axiom.co
+    headers:
+      authorization: "Bearer xaat-28ab6fdb-a4ba-4a23-b4d5-c227e7da011d"
+      x-axiom-dataset: "ensemble"
+
+# 2. Activate the components in pipelines
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug, otlphttp/axiom]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug, otlphttp/axiom]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug, otlphttp/axiom]

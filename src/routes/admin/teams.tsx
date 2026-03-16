@@ -1,12 +1,10 @@
+import type { Team } from "@/db/schema";
 import { Card, Table } from "@heroui/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { allTeamsQueryOptions } from "../admin";
 
 export const Route = createFileRoute("/admin/teams")({
-	loader: ({ context }) => {
-		context.queryClient.prefetchQuery(allTeamsQueryOptions());
-	},
 	component: TeamsView,
 });
 
@@ -39,7 +37,7 @@ function TeamsView() {
 									</div>
 								)}
 							>
-								{allTeams.map((t: any) => (
+								{allTeams.map((t: Team) => (
 									<Table.Row key={t.id}>
 										<Table.Cell className="font-semibold">
 											{t.teamName}

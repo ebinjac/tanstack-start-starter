@@ -49,6 +49,12 @@
   --radius: 0.125rem;
   --field-radius: 0.125rem;
 
+  /* Chart colors (shadcn-style charts) */
+  --chart-1: oklch(50% 0.16 245);
+  --chart-2: oklch(85% 0.12 85);
+  --chart-3: oklch(70% 0.15 150);
+  --chart-4: oklch(62.67% 0.189 28.91);
+
   --font-hanken-grotesk: "Hanken Grotesk", sans-serif;
   --font-sans: var(--font-hanken-grotesk);
 }
@@ -94,4 +100,9 @@
   
   --warning: oklch(80% 0.12 85);
   --warning-foreground: oklch(15% 0.05 85);
+
+  --chart-1: oklch(55% 0.16 245);
+  --chart-2: oklch(80% 0.12 85);
+  --chart-3: oklch(65% 0.15 150);
+  --chart-4: oklch(55% 0.18 25);
 }

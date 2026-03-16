@@ -1,35 +1,32 @@
-import { Button, Card, Label, Separator, Surface } from "@heroui/react";
+import type { TeamRegistrationRequest } from "@/db/schema";
+import { Button, Separator, Surface } from "@heroui/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { ArrowLeft, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getMyTeamRequestsFn } from "@/actions/teams.fn";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { queryKeys } from "@/lib/query-keys";
 
 export const Route = createFileRoute("/profile/requests")({
-	beforeLoad: ({ context }: any) => {
+	beforeLoad: ({ context }) => {
 		if (!context.session) {
 			throw redirect({ to: "/" });
 		}
+	},
+	loader: ({ context }) => {
+		context.queryClient.prefetchQuery({
+			queryKey: queryKeys.teams.myRequests(),
+			queryFn: () => getMyTeamRequestsFn(),
+		});
 	},
 	component: RouteComponent,
 });
 
 function RouteComponent() {
 	const { data: requests = [], isLoading } = useQuery({
-		queryKey: ["my-team-requests"],
+		queryKey: queryKeys.teams.myRequests(),
 		queryFn: () => getMyTeamRequestsFn(),
 	});
-
-	const statusColors = {
-		pending: "bg-warning/10 text-warning border-warning/20",
-		approved: "bg-success/10 text-success border-success/20",
-		rejected: "bg-danger/10 text-danger border-danger/20",
-	};
-
-	const statusIcons = {
-		pending: <Clock className="size-4 text-warning" />,
-		approved: <CheckCircle2 className="size-4 text-success" />,
-		rejected: <XCircle className="size-4 text-danger" />,
-	};
 
 	return (
 		<div className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6">
@@ -72,7 +69,7 @@ function RouteComponent() {
 				</div>
 			) : (
 				<div className="grid grid-cols-1 gap-4">
-					{requests.map((req: any) => (
+					{(requests as TeamRegistrationRequest[]).map((req) => (
 						<Surface
 							key={req.id}
 							className="p-5 backdrop-blur-md rounded-2xl border border-border/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-border/60 hover:bg-muted/5 transition-all"
@@ -104,15 +101,14 @@ function RouteComponent() {
 							</div>
 
 							<div className="flex items-center gap-3 shrink-0">
-								<div
-									className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${statusColors[req.status as keyof typeof statusColors]}`}
-								>
-									{statusIcons[req.status as keyof typeof statusIcons]}
-									<span className="capitalize">{req.status}</span>
-								</div>
+								<StatusBadge
+									status={
+										req.status === "processed" ? "approved" : req.status
+									}
+								/>
 								<Link
 									to="/teams/requests/$requestId"
-									params={{ requestId: req.id as any }}
+									params={{ requestId: req.id }}
 								>
 									<Button
 										size="sm"

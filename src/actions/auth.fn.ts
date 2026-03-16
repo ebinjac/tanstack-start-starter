@@ -1,55 +1,55 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { SessionUser } from "@/lib/zod/auth.schema";
 import { ssoUserSchema } from "@/lib/zod/auth.schema";
+import { getAppSession } from "@/lib/session";
+import { getDbContext, runWithDb } from "@/lib/server/run";
+import { withServerFnTracing } from "@/lib/server/tracing";
 
-// ─── Resolve team memberships from SSO groups ─────────────────────────────────
-// Kept as a local helper, only called inside server function handlers.
-// Wrapped in try/catch so session creation still works if DB is unavailable.
+const LOG_PREFIX = "[auth]";
 
+/** Resolve team memberships from SSO groups. Returns empty ids if DB fails so session creation can still succeed. */
 async function resolveTeamMemberships(groups: string[]): Promise<{
 	accessibleTeamIds: string[];
 	adminTeamIds: string[];
 }> {
-	try {
-		const { db } = await import("@/db");
-		const { teams } = await import("@/db/schema");
-		const { eq } = await import("drizzle-orm");
+	return runWithDb(
+		async () => {
+			const { db, schema, orm } = await getDbContext();
+			const { teams } = schema;
+			const { eq } = orm;
 
-		const allTeams = await db
-			.select({
-				id: teams.id,
-				userGroup: teams.userGroup,
-				adminGroup: teams.adminGroup,
-			})
-			.from(teams)
-			.where(eq(teams.isActive, true));
+			const allTeams = await db
+				.select({
+					id: teams.id,
+					userGroup: teams.userGroup,
+					adminGroup: teams.adminGroup,
+				})
+				.from(teams)
+				.where(eq(teams.isActive, true));
 
-		const accessibleTeamIds: string[] = [];
-		const adminTeamIds: string[] = [];
+			const accessibleTeamIds: string[] = [];
+			const adminTeamIds: string[] = [];
 
-		for (const team of allTeams) {
-			const isAdmin = groups.includes(team.adminGroup);
-			const isUser = groups.includes(team.userGroup);
+			for (const team of allTeams) {
+				const isAdmin = groups.includes(team.adminGroup);
+				const isUser = groups.includes(team.userGroup);
 
-			if (isAdmin) {
-				adminTeamIds.push(team.id);
-				accessibleTeamIds.push(team.id);
-			} else if (isUser) {
-				accessibleTeamIds.push(team.id);
+				if (isAdmin) {
+					adminTeamIds.push(team.id);
+					accessibleTeamIds.push(team.id);
+				} else if (isUser) {
+					accessibleTeamIds.push(team.id);
+				}
 			}
-		}
 
-		return { accessibleTeamIds, adminTeamIds };
-	} catch (err) {
-		console.error("[auth] Failed to resolve team memberships:", err);
-		return { accessibleTeamIds: [], adminTeamIds: [] };
-	}
-}
-
-async function getAppSession() {
-	const { useAppSession } = await import("@/lib/session");
-	// biome-ignore lint/correctness/useHookAtTopLevel: TanStack Start's useSession is a server API, not a React hook
-	return useAppSession();
+			return { accessibleTeamIds, adminTeamIds };
+		},
+		{
+			fallback: { accessibleTeamIds: [], adminTeamIds: [] },
+			logPrefix: LOG_PREFIX,
+			logContext: "Failed to resolve team memberships",
+		},
+	);
 }
 
 // ─── createSessionFn ──────────────────────────────────────────────────────────
@@ -60,96 +60,106 @@ export const createSessionFn = createServerFn({ method: "POST" })
 	.inputValidator((data: unknown) => {
 		return ssoUserSchema.parse(data);
 	})
-	.handler(async ({ data }) => {
-		const { attributes, groups } = data;
-		const { accessibleTeamIds, adminTeamIds } =
-			await resolveTeamMemberships(groups);
+	.handler(async ({ data }) =>
+		withServerFnTracing("createSessionFn", async () => {
+			const { attributes, groups } = data;
+			const { accessibleTeamIds, adminTeamIds } =
+				await resolveTeamMemberships(groups);
 
-		const now = Math.floor(Date.now() / 1000);
-		const sessionData: SessionUser = {
-			userId: attributes.guid,
-			adsId: attributes.adsId,
-			email: attributes.email,
-			fullName: attributes.fullName,
-			employeeId: attributes.employeeId,
-			groups,
-			accessibleTeamIds,
-			adminTeamIds,
-			iat: now,
-			exp: now + 8 * 60 * 60, // 8 hours
-		};
+			const now = Math.floor(Date.now() / 1000);
+			const sessionData: SessionUser = {
+				userId: attributes.guid,
+				adsId: attributes.adsId,
+				email: attributes.email,
+				fullName: attributes.fullName,
+				employeeId: attributes.employeeId,
+				groups,
+				accessibleTeamIds,
+				adminTeamIds,
+				iat: now,
+				exp: now + 8 * 60 * 60, // 8 hours
+			};
 
-		const session = await getAppSession();
-		await session.update(sessionData);
+			const sessionApi = await getAppSession();
+			await sessionApi.update(sessionData);
 
-		return sessionData;
-	});
+			const { setRequestUserContext } = await import("@/lib/log");
+			setRequestUserContext({ adsId: sessionData.adsId, userId: sessionData.userId });
+
+			return sessionData;
+		}),
+	);
 
 // ─── getSessionFn ─────────────────────────────────────────────────────────────
 // Reads and returns the current session from the cookie.
 // Returns null if no session exists or if expired.
 
-export const getSessionFn = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const session = await getAppSession();
+export const getSessionFn = createServerFn({ method: "GET" }).handler(() =>
+	withServerFnTracing("getSessionFn", async () => {
+		const sessionApi = await getAppSession();
+		const data = sessionApi.data;
 
-		if (!session.data.userId) {
-			return null;
-		}
+		if (!data?.userId) return null;
 
-		// Check expiration
 		const now = Math.floor(Date.now() / 1000);
-		if (session.data.exp && session.data.exp < now) {
-			await session.clear();
+		if (data.exp != null && data.exp < now) {
+			await sessionApi.clear();
 			return null;
 		}
 
-		return session.data as SessionUser;
-	},
+		const session = data as SessionUser;
+		const { setRequestUserContext } = await import("@/lib/log");
+		setRequestUserContext({ adsId: session.adsId, userId: session.userId });
+
+		return session;
+	}),
 );
 
 // ─── refreshSessionFn ─────────────────────────────────────────────────────────
 // Re-resolves team memberships from DB using stored groups.
 // Call this when you suspect a user's group membership may have changed.
 
-export const refreshSessionFn = createServerFn({ method: "POST" }).handler(
-	async () => {
-		const session = await getAppSession();
+export const refreshSessionFn = createServerFn({ method: "POST" }).handler(() =>
+	withServerFnTracing("refreshSessionFn", async () => {
+		const sessionApi = await getAppSession();
+		const data = sessionApi.data;
 
-		if (!session.data.userId || !session.data.groups) {
-			return null;
-		}
+		if (!data?.userId || !data.groups) return null;
 
 		const { accessibleTeamIds, adminTeamIds } = await resolveTeamMemberships(
-			session.data.groups,
+			data.groups,
 		);
 
 		const now = Math.floor(Date.now() / 1000);
 		const refreshedData: SessionUser = {
-			userId: session.data.userId,
-			adsId: session.data.adsId ?? "",
-			email: session.data.email ?? "",
-			fullName: session.data.fullName ?? "",
-			employeeId: session.data.employeeId ?? "",
-			groups: session.data.groups,
+			userId: data.userId,
+			adsId: data.adsId ?? "",
+			email: data.email ?? "",
+			fullName: data.fullName ?? "",
+			employeeId: data.employeeId ?? "",
+			groups: data.groups,
 			accessibleTeamIds,
 			adminTeamIds,
 			iat: now,
 			exp: now + 8 * 60 * 60,
 		};
 
-		await session.update(refreshedData);
+		await sessionApi.update(refreshedData);
+
+		const { setRequestUserContext } = await import("@/lib/log");
+		setRequestUserContext({ adsId: refreshedData.adsId, userId: refreshedData.userId });
+
 		return refreshedData;
-	},
+	}),
 );
 
 // ─── clearSessionFn ───────────────────────────────────────────────────────────
 // Clears the session cookie.
 
-export const clearSessionFn = createServerFn({ method: "POST" }).handler(
-	async () => {
-		const session = await getAppSession();
-		await session.clear();
+export const clearSessionFn = createServerFn({ method: "POST" }).handler(() =>
+	withServerFnTracing("clearSessionFn", async () => {
+		const sessionApi = await getAppSession();
+		await sessionApi.clear();
 		return { success: true };
-	},
+	}),
 );
